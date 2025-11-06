@@ -88,42 +88,122 @@ flowchart LR
 
 ```mermaid
 erDiagram
-MEMBERS {
-  uuid id PK
-  string name
-  string email
-  enum status "pending | approved | rejected"
-  datetime joined_at
-}
 
-REFERRALS {
-  uuid id PK
-  uuid sender_id FK
-  uuid receiver_id FK
-  enum status "pending | contacted | closed"
-  datetime created_at
-}
+    USERS {
+        UUID id PK
+        TEXT email
+        TEXT password_hash
+        TEXT name
+        TEXT role
+        TIMESTAMPTZ created_at
+    }
 
-MEETINGS {
-  uuid id PK
-  uuid member_id FK
-  date date
-  enum type "group | 1on1"
-  boolean checkin
-}
+    MEMBER_APPLICATIONS {
+        UUID id PK
+        TEXT applicant_name
+        TEXT email
+        TEXT phone
+        TEXT message
+        TEXT status
+        UUID reviewed_by FK
+        TIMESTAMPTZ reviewed_at
+        TIMESTAMPTZ created_at
+        JSONB metadata
+    }
 
-PAYMENTS {
-  uuid id PK
-  uuid member_id FK
-  decimal amount
-  date due_date
-  enum status "pending | paid | overdue"
-}
+    MEMBERS {
+        UUID id PK
+        UUID user_id FK
+        DATE join_date
+        TEXT membership_status
+        JSONB profile
+        TIMESTAMPTZ created_at
+    }
 
-MEMBERS ||--o{ REFERRALS : sends
-MEMBERS ||--o{ REFERRALS : receives
-MEMBERS ||--o{ MEETINGS : attends
-MEMBERS ||--o{ PAYMENTS : makes
+    EVENTS {
+        UUID id PK
+        TEXT title
+        TEXT description
+        TIMESTAMPTZ event_date
+        TEXT location
+        UUID organizer_id FK
+        TIMESTAMPTZ created_at
+        JSONB metadata
+    }
+
+    ATTENDANCE {
+        UUID id PK
+        UUID event_id FK
+        UUID member_id FK
+        TIMESTAMPTZ checkin_at
+        TEXT status
+        TIMESTAMPTZ created_at
+    }
+
+    REFERRALS {
+        UUID id PK
+        UUID from_member FK
+        UUID to_member FK
+        JSONB referred_person
+        NUMERIC value
+        TEXT status
+        JSONB status_history
+        TIMESTAMPTZ created_at
+    }
+
+    THANKS_RECORDS {
+        UUID id PK
+        UUID from_member FK
+        UUID to_member FK
+        UUID referral_id FK
+        TEXT message
+        TIMESTAMPTZ created_at
+    }
+
+    ONE_ON_ONE_MEETINGS {
+        UUID id PK
+        UUID member_a FK
+        UUID member_b FK
+        TIMESTAMPTZ scheduled_at
+        TEXT notes
+        TEXT status
+        TIMESTAMPTZ created_at
+    }
+
+    INVOICES {
+        UUID id PK
+        UUID member_id FK
+        DATE due_date
+        INTEGER amount_cents
+        TEXT currency
+        TEXT status
+        TEXT external_payment_id
+        JSONB metadata
+        TIMESTAMPTZ created_at
+    }
+
+    PAYMENTS {
+        UUID id PK
+        UUID invoice_id FK
+        TIMESTAMPTZ paid_at
+        INTEGER amount_cents
+        TEXT gateway
+        JSONB gateway_payload
+        TIMESTAMPTZ created_at
+    }
+
+    %% RELATIONSHIPS
+    USERS ||--o{ MEMBER_APPLICATIONS : "reviews"
+    USERS ||--o{ MEMBERS : "owns"
+    USERS ||--o{ EVENTS : "organizes"
+    MEMBERS ||--o{ ATTENDANCE : "checks-in"
+    MEMBERS ||--o{ REFERRALS : "sends/receives"
+    MEMBERS ||--o{ THANKS_RECORDS : "thanks"
+    MEMBERS ||--o{ ONE_ON_ONE_MEETINGS : "participates"
+    MEMBERS ||--o{ INVOICES : "billed"
+    INVOICES ||--o{ PAYMENTS : "has"
+    REFERRALS ||--o{ THANKS_RECORDS : "linked"
+    EVENTS ||--o{ ATTENDANCE : "tracked"
 ```
 
 ### 4.2 Database Choice
@@ -132,70 +212,92 @@ MEMBERS ||--o{ PAYMENTS : makes
 
 ### 4.3. Technical Schema (Simplified SQL Reference)
 ```sql
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- 1. Usuários (admin e membros)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT,
-  name TEXT,
-  role TEXT NOT NULL DEFAULT 'member', -- admin, member, reviewer
+  role TEXT NOT NULL DEFAULT 'member', -- admin, member
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 2. Intenções de participação (formulário público)
 CREATE TABLE member_applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  applicant_name TEXT NOT NULL,
+  name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
+  business_area TEXT,
+  interests TEXT,
   message TEXT,
-  status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected
+  status TEXT DEFAULT 'pending', -- pending, approved, rejected
   reviewed_by UUID REFERENCES users(id),
   reviewed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  metadata JSONB
-);
-
-CREATE TABLE members (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  join_date DATE DEFAULT CURRENT_DATE,
-  membership_status TEXT DEFAULT 'active', -- active, paused, cancelled
-  profile JSONB,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 3. Membros (cadastro completo dos aprovados)
+CREATE TABLE members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  application_id UUID REFERENCES member_applications(id),
+  company TEXT,
+  position TEXT,
+  joined_at DATE DEFAULT CURRENT_DATE,
+  status TEXT DEFAULT 'active', -- active, paused, cancelled
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 4. Comunicados e avisos
+CREATE TABLE announcements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5. Reuniões e eventos
 CREATE TABLE events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
   event_date TIMESTAMPTZ NOT NULL,
   location TEXT,
-  organizer_id UUID REFERENCES users(id),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  metadata JSONB
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 6. Controle de presença
 CREATE TABLE attendance (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
   member_id UUID REFERENCES members(id) ON DELETE CASCADE,
   checkin_at TIMESTAMPTZ,
-  status TEXT DEFAULT 'present', -- present, absent, late, excused
-  created_at TIMESTAMPTZ DEFAULT now()
+  status TEXT DEFAULT 'present', -- present, absent, late
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (event_id, member_id)
 );
 
+-- 7. Indicações de negócios
 CREATE TABLE referrals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   from_member UUID REFERENCES members(id),
   to_member UUID REFERENCES members(id),
-  referred_person JSONB, -- {name, company, contact, notes}
+  contact_name TEXT,
+  contact_company TEXT,
+  contact_info TEXT,
   value NUMERIC,
-  status TEXT DEFAULT 'open', -- open, contacted, qualified, won, lost
-  status_history JSONB, -- [{status, by, at, comment}]
+  status TEXT DEFAULT 'Sent', -- Sent, In Negotiation, Closed
+  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE thanks_records (
+-- 8. "Obrigados" (agradecimentos por negócios)
+CREATE TABLE thanks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   from_member UUID REFERENCES members(id),
   to_member UUID REFERENCES members(id),
@@ -204,25 +306,24 @@ CREATE TABLE thanks_records (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 9. Reuniões 1 a 1
 CREATE TABLE one_on_one_meetings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   member_a UUID REFERENCES members(id),
   member_b UUID REFERENCES members(id),
   scheduled_at TIMESTAMPTZ,
   notes TEXT,
-  status TEXT DEFAULT 'scheduled',
+  status TEXT DEFAULT 'scheduled', -- scheduled, completed, cancelled
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 10. Financeiro: mensalidades
 CREATE TABLE invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   member_id UUID REFERENCES members(id),
   due_date DATE,
-  amount_cents INTEGER NOT NULL,
-  currency TEXT DEFAULT 'BRL',
-  status TEXT DEFAULT 'pending', -- pending, paid, overdue, cancelled
-  external_payment_id TEXT,
-  metadata JSONB,
+  amount NUMERIC NOT NULL,
+  status TEXT DEFAULT 'pending', -- pending, paid, overdue
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -230,17 +331,16 @@ CREATE TABLE payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   invoice_id UUID REFERENCES invoices(id),
   paid_at TIMESTAMPTZ,
-  amount_cents INTEGER,
-  gateway TEXT,
-  gateway_payload JSONB,
+  amount NUMERIC,
+  method TEXT, -- e.g. pix, credit_card
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Indexes básicos
 CREATE INDEX ON member_applications (status);
 CREATE INDEX ON events (event_date);
 CREATE INDEX ON referrals (status);
-CREATE INDEX USING GIN (members.profile);
-CREATE INDEX USING GIN (referrals.referred_person);
+CREATE INDEX ON invoices (status);
 ```
 ### 4.4 Relacionamentos (summary)
   - users ↔ members (optional 1:1)
