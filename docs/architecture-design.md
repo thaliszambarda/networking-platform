@@ -1,5 +1,15 @@
 # Networking Platform - Architecture Design Document
 
+## Table of Contents
+1. [Overview](#1-overview)
+2. [Functional Scope](#2-functional-scope)
+3. [Architecture Diagram](#3-architecture-diagram)
+4. [Data Model (Relational)](#4-data-model-relational)
+5. [Frontend Structure (Next.js)](#5-frontend-structure-nextjs)
+6. [Backend Structure (NestJS)](#6-backend-structure-nestjs)
+7. [API Definition (REST)](#7-api-definition-rest)
+8. [Summary](#8-summary)
+
 ## 1. Overview
 
 The **Networking Platform** is a fullstack web application designed to manage professional networking groups. It enables efficient **member management**, **business referrals**, **event participation**, and **performance tracking** through a unified system.
@@ -245,7 +255,7 @@ CREATE INDEX USING GIN (referrals.referred_person);
 
 **Stack:** Next.js (App Router) + React + TypeScript + TailwindCSS + Server components (for data fetching).
 
-**Suggested Folder Structure:**
+### 5.1 Suggested Folder Structure:
 
 ```
 client/
@@ -270,6 +280,16 @@ client/
     ├── lib/                       # date utils, validators
     └── types/                     # shared TS types/interfaces
 ```
+
+### 5.2 Organização de componentes e responsabilidades
+- ui/: reusable primitives (buttons, inputs, modals, tables). No business logic here.
+- Feature folders (members, events, referrals): feature-specific components + local hooks.
+- Pages: orchestrate hooks and services, and compose the UI.
+- services/api.ts: centralizes HTTP calls, handles tokens and interceptors.
+- **Data and State Management:**
+- Server Components handle data fetching directly on the server — no client-side caching layer like React Query.
+- AuthContext for token/session management.
+- Zustand (optional) for cross-cutting UI state (sidebar open, filters).
 
 ---
 
