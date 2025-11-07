@@ -1,0 +1,22 @@
+# Node
+node_modules
+dist
+.next
+.env
+.env.local
+
+# Logs
+logs
+*.log
+
+# Build
+build
+out
+
+# OS
+.DS_Store
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
