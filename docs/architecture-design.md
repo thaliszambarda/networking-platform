@@ -18,9 +18,10 @@ The MVP will be implemented as a **monorepo** managed by **pnpm**, structured as
 
 ```
 networking-platform/
-├── client/   → Frontend (Next.js + TypeScript)
-├── server/   → Backend (NestJS + TypeScript)
-├── shared/   → Shared types/interfaces (optional)
+├── apps/
+│   ├── client/   → Frontend (Next.js + TypeScript)
+│   └── server/   → Backend (NestJS + TypeScript)
+├── shared/       → Shared types/interfaces (optional)
 ├── pnpm-workspace.yaml
 ├── package.json
 └── README.md
@@ -540,8 +541,8 @@ server/
 {
   "name": "Alice Johnson",
   "email": "alice@example.com",
-  "phone": "+55 11 99999-9999",
-  "message": "I'd like to join the group."
+  "company": "Elite services",
+  "reason": "I'd like to join the group."
 }
 ```
 
@@ -550,17 +551,17 @@ server/
 ```json
 {
   "id": "uuid",
-  "status": "pending",
+  "status": "PENDING",
   "created_at": "2025-11-06T10:00:00Z"
 }
 ```
 
-**PATCH /api/members/:id/status** — Approve or reject member
+**PATCH /api/members/:id/:status** — Approve or reject member
 **Request Body:**
 
 ```json
 {
-  "status": "approved"
+  "status": "APPROVED"
 }
 ```
 
@@ -569,7 +570,7 @@ server/
 ```json
 {
   "id": "uuid",
-  "status": "approved",
+  "status": "APPROVED",
   "updated_at": "2025-11-06T12:00:00Z"
 }
 ```
@@ -604,7 +605,7 @@ server/
 }
 ```
 
-**PATCH /api/referrals/:id/status** — Update referral status
+**PATCH /api/referrals/:id/:status** — Update referral status
 **Request Body:**
 
 ```json
