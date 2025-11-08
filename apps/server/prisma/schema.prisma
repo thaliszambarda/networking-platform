@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model MemberApplication {
+  id        String            @id @default(uuid())
+  name      String
+  email     String            @unique
+  company   String?
+  reason    String?
+  status    ApplicationStatus @default(PENDING)
+  token     String?           @unique
+  createdAt DateTime          @default(now())
+}
+
+model Member {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  company  String?
+  joinedAt DateTime @default(now())
+  active   Boolean  @default(true)
+}
+
+model Referral {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+}
+
+model ThanksRecord {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+}
