@@ -26,12 +26,17 @@ model MemberApplication {
 }
 
 model Member {
-  id       String   @id @default(uuid())
-  name     String
-  email    String   @unique
-  company  String?
-  joinedAt DateTime @default(now())
-  active   Boolean  @default(true)
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  company      String?
+  role         String?
+  address      String?
+  city         String?
+  country      String?
+  joinedAt     DateTime @default(now())
+  active       Boolean  @default(true)
 }
 
 model Referral {
