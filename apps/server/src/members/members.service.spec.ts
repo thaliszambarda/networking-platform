@@ -36,8 +36,14 @@ describe('MembersService', () => {
 
   describe('applyIntent', () => {
     it('should create a new application', async () => {
-      prisma.memberApplication.create.mockResolvedValue({ id: '1', name: 'John' });
-      const result = await service.applyIntent({ name: 'John', email: 'john@example.com' });
+      prisma.memberApplication.create.mockResolvedValue({
+        id: '1',
+        name: 'John',
+      });
+      const result = await service.applyIntent({
+        name: 'John',
+        email: 'john@example.com',
+      });
       expect(result).toEqual({ id: '1', name: 'John' });
       expect(prisma.memberApplication.create).toHaveBeenCalledWith({
         data: { name: 'John', email: 'john@example.com' },
@@ -47,14 +53,17 @@ describe('MembersService', () => {
     it('should throw BadRequestException on duplicate email', async () => {
       prisma.memberApplication.create.mockRejectedValue({ code: 'P2002' });
       await expect(
-        service.applyIntent({ name: 'John', email: 'john@example.com' }),
+        service.applyIntent({ name: 'John', email: 'john@example.com' })
       ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('listApplications', () => {
     it('should return all applications', async () => {
-      prisma.memberApplication.findMany.mockResolvedValue([{ id: '1' }, { id: '2' }]);
+      prisma.memberApplication.findMany.mockResolvedValue([
+        { id: '1' },
+        { id: '2' },
+      ]);
       const result = await service.listApplications();
       expect(result).toEqual([{ id: '1' }, { id: '2' }]);
       expect(prisma.memberApplication.findMany).toHaveBeenCalledWith({
@@ -66,7 +75,7 @@ describe('MembersService', () => {
   describe('updateStatus', () => {
     it('should update status and generate token if approved', async () => {
       prisma.memberApplication.update.mockImplementation(({ data }) =>
-        Promise.resolve({ id: '1', ...data }),
+        Promise.resolve({ id: '1', ...data })
       );
 
       const result = await service.updateStatus('1', 'APPROVED');
@@ -76,7 +85,9 @@ describe('MembersService', () => {
 
     it('should throw NotFoundException if update fails', async () => {
       prisma.memberApplication.update.mockRejectedValue({ code: 'P2025' });
-      await expect(service.updateStatus('999', 'REJECTED')).rejects.toThrow(NotFoundException);
+      await expect(service.updateStatus('999', 'REJECTED')).rejects.toThrow(
+        NotFoundException
+      );
     });
   });
 
@@ -85,9 +96,19 @@ describe('MembersService', () => {
       const app = { id: '1', token: 'abc' };
       prisma.memberApplication.findUnique.mockResolvedValue(app);
       prisma.member.create.mockResolvedValue({ id: '2', name: 'John' });
-      prisma.memberApplication.update.mockResolvedValue({ id: '1', token: null });
+      prisma.memberApplication.update.mockResolvedValue({
+        id: '1',
+        token: null,
+      });
 
-      const result = await service.completeRegistration('abc', { name: 'John', email: 'john@example.com' });
+      const result = await service.completeRegistration('abc', {
+        address: '123 Street',
+        phone: '1234567890',
+        city: 'City',
+        country: 'Country',
+        company: 'Company',
+        role: 'Role',
+      });
       expect(result).toEqual({ id: '2', name: 'John' });
       expect(prisma.memberApplication.update).toHaveBeenCalledWith({
         where: { id: '1' },
@@ -98,7 +119,14 @@ describe('MembersService', () => {
     it('should throw NotFoundException if token invalid', async () => {
       prisma.memberApplication.findUnique.mockResolvedValue(null);
       await expect(
-        service.completeRegistration('invalid', { name: 'John', email: 'john@example.com' }),
+        service.completeRegistration('invalid', {
+          address: '123 Street',
+          phone: '1234567890',
+          city: 'City',
+          country: 'Country',
+          company: 'Company',
+          role: 'Role',
+        })
       ).rejects.toThrow(NotFoundException);
     });
   });

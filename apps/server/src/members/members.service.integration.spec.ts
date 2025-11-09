@@ -8,8 +8,6 @@ describe('MembersService Integration', () => {
   let service: MembersService;
   let prisma: PrismaService;
 
-
-
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
@@ -53,12 +51,15 @@ describe('MembersService Integration', () => {
   it('should throw BadRequestException if email already exists', async () => {
     await service.applyIntent({ name: 'Bob', email: 'bob@example.com' });
     await expect(
-      service.applyIntent({ name: 'Bob2', email: 'bob@example.com' }),
+      service.applyIntent({ name: 'Bob2', email: 'bob@example.com' })
     ).rejects.toThrow(BadRequestException);
   });
 
   it('should update status and generate token', async () => {
-    const app = await service.applyIntent({ name: 'Charlie', email: 'charlie@example.com' });
+    const app = await service.applyIntent({
+      name: 'Charlie',
+      email: 'charlie@example.com',
+    });
 
     const updated = await service.updateStatus(app.id, 'APPROVED');
     expect(updated.status).toBe('APPROVED');
@@ -66,13 +67,19 @@ describe('MembersService Integration', () => {
   });
 
   it('should complete registration', async () => {
-    const app = await service.applyIntent({ name: 'Dave', email: 'dave@example.com' });
+    const app = await service.applyIntent({
+      name: 'Dave',
+      email: 'dave@example.com',
+    });
     const updated = await service.updateStatus(app.id, 'APPROVED');
 
     const member = await service.completeRegistration(updated.token!, {
-      name: 'Dave',
-      email: 'dave@example.com',
       company: 'TestInc',
+      address: '456 Avenue',
+      phone: '9876543210',
+      city: 'Town',
+      country: 'Countryland',
+      role: 'Developer',
     });
 
     expect(member).toHaveProperty('id');

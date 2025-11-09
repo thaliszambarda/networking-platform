@@ -9,7 +9,9 @@ export class DashboardService {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const totalMembers = await this.prisma.member.count({ where: { active: true } });
+    const totalMembers = await this.prisma.member.count({
+      where: { active: true },
+    });
     const totalReferrals = await this.prisma.referral.count({
       where: { createdAt: { gte: startOfMonth } },
     });

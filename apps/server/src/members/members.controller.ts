@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Get, Patch, Param, Headers, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Patch,
+  Param,
+  Headers,
+  BadRequestException,
+} from '@nestjs/common';
 import { MembersService } from './members.service';
 import { ConfigService } from '@nestjs/config';
 import { ApplyMemberDto } from './dto/apply-member.dto';
@@ -7,7 +16,10 @@ import { ApplicationStatus } from './dto/update-status.dto';
 
 @Controller('members')
 export class MembersController {
-  constructor(private service: MembersService, private config: ConfigService) {}
+  constructor(
+    private service: MembersService,
+    private config: ConfigService
+  ) {}
 
   @Post('apply')
   async apply(@Body() body: ApplyMemberDto) {
@@ -29,7 +41,9 @@ export class MembersController {
     this.checkAdmin(secret);
 
     if (!Object.values(ApplicationStatus).includes(status)) {
-      throw new BadRequestException(`status must be one of: ${Object.values(ApplicationStatus).join(', ')}`);
+      throw new BadRequestException(
+        `status must be one of: ${Object.values(ApplicationStatus).join(', ')}`
+      );
     }
 
     const app = await this.service.updateStatus(id, status);
@@ -45,7 +59,10 @@ export class MembersController {
   }
 
   @Post('register/:token')
-  async complete(@Param('token') token: string, @Body() body: CompleteRegistrationDto) {
+  async complete(
+    @Param('token') token: string,
+    @Body() body: CompleteRegistrationDto
+  ) {
     return this.service.completeRegistration(token, body);
   }
 
