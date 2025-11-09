@@ -4,7 +4,10 @@ import { ConfigService } from '@nestjs/config';
 
 @Controller('dashboard')
 export class DashboardController {
-  constructor(private service: DashboardService, private config: ConfigService) {}
+  constructor(
+    private service: DashboardService,
+    private config: ConfigService
+  ) {}
 
   @Get()
   async getStats(@Headers('x-admin-secret') secret: string) {

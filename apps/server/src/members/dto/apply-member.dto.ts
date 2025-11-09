@@ -15,5 +15,3 @@ export class ApplyMemberDto {
   @IsString()
   reason?: string;
 }
-
-

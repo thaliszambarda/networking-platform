@@ -4,7 +4,11 @@ import { MembersModule } from './members/members.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { PrismaService } from './prisma/prisma.service';
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), MembersModule, DashboardModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    MembersModule,
+    DashboardModule,
+  ],
   providers: [PrismaService],
 })
 export class AppModule {}
